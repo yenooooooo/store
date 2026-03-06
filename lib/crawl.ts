@@ -32,16 +32,62 @@ function detectPlatform(url: string): "naver" | "coupang" | "11st" {
 // URL에서 스토어명과 상품번호 추출
 function parseNaverUrl(url: string): { storeName: string; productNo: string } | null {
   const cleanUrl = (url.split("?")[0]) ?? url;
-  // https://smartstore.naver.com/{storeName}/products/{productNo}
-  // https://brand.naver.com/{storeName}/products/{productNo}
   const match = cleanUrl.match(/(?:smartstore|brand|m\.smartstore|m\.brand)\.naver\.com\/([^/]+)\/products\/(\d+)/);
   if (match) return { storeName: match[1]!, productNo: match[2]! };
   return null;
 }
 
+// URL에서 검색 힌트 추출 (nl-query, 쿼리 파라미터 등)
+function extractSearchHint(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+    // nl-query: 네이버 검색에서 넘어온 쿼리
+    const nlQuery = urlObj.searchParams.get("nl-query");
+    if (nlQuery) return nlQuery;
+    // query: 일반 검색 쿼리
+    const query = urlObj.searchParams.get("query");
+    if (query) return query;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// 네이버 검색 API로 상품 정보 조회 (가장 안정적인 방법)
+async function searchNaverProduct(searchQuery: string, productNo?: string): Promise<Partial<CrawledProduct>> {
+  console.log("[CRAWL] Searching Naver API:", searchQuery);
+  const items = await searchShopping(searchQuery, 10);
+
+  if (items.length === 0) return {};
+
+  // productNo가 있으면 해당 상품과 매칭 시도 (link에 productId 포함 여부)
+  let bestItem = items[0]!;
+  if (productNo) {
+    const matched = items.find((item) => item.link.includes(productNo) || item.productId === productNo);
+    if (matched) bestItem = matched;
+  }
+
+  const productName = bestItem.title.replace(/<[^>]*>/g, "").trim();
+  const category = [bestItem.category1, bestItem.category2, bestItem.category3, bestItem.category4]
+    .filter(Boolean)
+    .join(" > ");
+  const features: string[] = [];
+  if (bestItem.brand) features.push(`브랜드: ${bestItem.brand}`);
+  if (bestItem.maker) features.push(`제조사: ${bestItem.maker}`);
+  const imageUrls = bestItem.image ? [bestItem.image] : [];
+
+  console.log("[CRAWL] Search API found:", productName);
+  return {
+    productName,
+    price: bestItem.lprice || "",
+    category,
+    features,
+    imageUrls,
+  };
+}
+
 // 스마트스토어 내부 JSON API로 상품 정보 가져오기
 async function fetchNaverProductApi(storeName: string, productNo: string): Promise<Partial<CrawledProduct>> {
-  // 스마트스토어 내부 API 엔드포인트들
   const apiUrls = [
     `https://m.smartstore.naver.com/i/v1/stores/${storeName}/products/${productNo}`,
     `https://smartstore.naver.com/i/v1/stores/${storeName}/products/${productNo}`,
@@ -56,10 +102,9 @@ async function fetchNaverProductApi(storeName: string, productNo: string): Promi
           "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
           "Referer": `https://m.smartstore.naver.com/${storeName}/products/${productNo}`,
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(5000),
       });
 
-      console.log("[CRAWL] Store API status:", res.status);
       if (!res.ok) continue;
 
       const data = await res.json();
@@ -96,71 +141,55 @@ async function fetchNaverProductApi(storeName: string, productNo: string): Promi
   return {};
 }
 
-// 스마트스토어 URL → 모바일 URL 변환
-function toMobileNaverUrl(url: string): string {
+// 모바일 페이지에서 OG 태그 추출 (1회만 시도, 타임아웃 짧게)
+async function fetchMobilePage(url: string): Promise<Partial<CrawledProduct>> {
   const cleanUrl = (url.split("?")[0]) ?? url;
-  return cleanUrl
+  const mobileUrl = cleanUrl
     .replace("://smartstore.naver.com", "://m.smartstore.naver.com")
     .replace("://brand.naver.com", "://m.brand.naver.com");
-}
 
-// 모바일 페이지에서 OG 태그 + 상세 정보 추출 (폴백)
-async function fetchMobilePage(url: string): Promise<Partial<CrawledProduct>> {
-  const mobileUrl = toMobileNaverUrl(url);
-  console.log("[CRAWL] Fetching mobile page:", mobileUrl);
+  try {
+    console.log("[CRAWL] Fetching mobile page:", mobileUrl);
+    const res = await fetch(mobileUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+        Accept: "text/html",
+        "Accept-Language": "ko-KR,ko;q=0.9",
+      },
+      redirect: "follow",
+      signal: AbortSignal.timeout(8000),
+    });
 
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (attempt > 0) {
-      await new Promise((r) => setTimeout(r, 1000 * attempt));
+    console.log("[CRAWL] Mobile page status:", res.status);
+    const html = await res.text();
+
+    // 429여도 본문에 OG 태그가 있을 수 있음
+    const $ = cheerio.load(html);
+    const ogTitle = $("meta[property='og:title']").attr("content") ?? "";
+    if (!ogTitle) return {};
+
+    const ogDesc = $("meta[property='og:description']").attr("content") ?? "";
+    const ogImage = $("meta[property='og:image']").attr("content") ?? "";
+    const productName = ogTitle.split(" : ")[0]?.trim() ?? ogTitle.trim();
+    const price = $("meta[property='product:price:amount']").attr("content") ?? "";
+    const category = $("meta[property='product:category']").attr("content") ?? "";
+    const imageUrls: string[] = [];
+    if (ogImage) imageUrls.push(ogImage);
+    const features: string[] = [];
+    if (ogDesc) {
+      ogDesc.split(/[,./·|]/).map((s) => s.trim()).filter((s) => s.length > 3).slice(0, 5).forEach((s) => features.push(s));
     }
 
-    try {
-      const res = await fetch(mobileUrl, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-          Accept: "text/html",
-          "Accept-Language": "ko-KR,ko;q=0.9",
-        },
-        redirect: "follow",
-        signal: AbortSignal.timeout(10000),
-      });
-
-      console.log("[CRAWL] Mobile page status:", res.status);
-      if (res.status === 429) continue;
-      if (!res.ok) return {};
-
-      const html = await res.text();
-      const $ = cheerio.load(html);
-
-      const ogTitle = $("meta[property='og:title']").attr("content") ?? "";
-      const ogDesc = $("meta[property='og:description']").attr("content") ?? "";
-      const ogImage = $("meta[property='og:image']").attr("content") ?? "";
-      const productName = ogTitle.split(" : ")[0]?.trim() ?? ogTitle.trim();
-      const price = $("meta[property='product:price:amount']").attr("content") ?? "";
-      const category = $("meta[property='product:category']").attr("content") ?? "";
-      const imageUrls: string[] = [];
-      if (ogImage) imageUrls.push(ogImage);
-      const features: string[] = [];
-      if (ogDesc) {
-        ogDesc.split(/[,./·|]/).map((s) => s.trim()).filter((s) => s.length > 3).slice(0, 5).forEach((s) => features.push(s));
-      }
-
-      if (productName) {
-        console.log("[CRAWL] Mobile page success:", productName);
-        return { productName, price, category, features, imageUrls };
-      }
-    } catch (e) {
-      console.log("[CRAWL] Mobile page failed:", e instanceof Error ? e.message : e);
+    if (productName) {
+      console.log("[CRAWL] Mobile page success:", productName);
+      return { productName, price, category, features, imageUrls };
     }
+  } catch (e) {
+    console.log("[CRAWL] Mobile page failed:", e instanceof Error ? e.message : e);
   }
 
   return {};
-}
-
-// 상품명으로 네이버 쇼핑 검색 → 상품 정보 구성 (URL 크롤링 실패 시 폴백)
-export async function searchProductByName(productName: string): Promise<CrawledProduct> {
-  return enrichWithSearchApi(productName, {});
 }
 
 // 네이버 쇼핑 검색 API로 추가 정보 보강
@@ -182,7 +211,6 @@ async function enrichWithSearchApi(
     };
   }
 
-  // 검색 API로 추가 데이터 가져오기
   console.log("[CRAWL] Enriching with search API:", productName);
   const items = await searchShopping(productName, 5);
 
@@ -194,19 +222,16 @@ async function enrichWithSearchApi(
   if (items.length > 0) {
     const item = items[0]!;
 
-    // 카테고리 보강
     if (!enrichedCategory) {
       enrichedCategory = [item.category1, item.category2, item.category3, item.category4]
         .filter(Boolean)
         .join(" > ");
     }
 
-    // 가격 보강
     if (!enrichedPrice && item.lprice) {
       enrichedPrice = item.lprice;
     }
 
-    // 특징 보강
     if (enrichedFeatures.length < 3) {
       if (item.brand && !enrichedFeatures.some((f) => f.includes(item.brand))) {
         enrichedFeatures.push(`브랜드: ${item.brand}`);
@@ -216,12 +241,9 @@ async function enrichWithSearchApi(
       }
     }
 
-    // 이미지 보강
     if (enrichedImages.length === 0 && item.image) {
       enrichedImages.push(item.image);
     }
-
-    console.log("[CRAWL] Enriched with search data");
   }
 
   return {
@@ -235,11 +257,14 @@ async function enrichWithSearchApi(
   };
 }
 
+// 상품명으로 네이버 쇼핑 검색 → 상품 정보 구성
+export async function searchProductByName(productName: string): Promise<CrawledProduct> {
+  return enrichWithSearchApi(productName, {});
+}
+
 // 쿠팡 URL → 네이버 쇼핑 검색으로 대체
 async function crawlCoupang(url: string): Promise<CrawledProduct> {
   const platform = "coupang" as const;
-
-  // 쿠팡 모바일 페이지에서 OG 태그 시도
   const cleanUrl = (url.split("?")[0]) ?? url;
   let productName = "";
 
@@ -247,8 +272,7 @@ async function crawlCoupang(url: string): Promise<CrawledProduct> {
     console.log("[CRAWL] Fetching Coupang OG:", cleanUrl);
     const res = await fetch(cleanUrl, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
         Accept: "text/html",
       },
       redirect: "follow",
@@ -268,18 +292,9 @@ async function crawlCoupang(url: string): Promise<CrawledProduct> {
   }
 
   if (!productName) {
-    return {
-      productName: "",
-      price: "",
-      category: "",
-      features: [],
-      reviewSummary: [],
-      imageUrls: [],
-      platform,
-    };
+    return { productName: "", price: "", category: "", features: [], reviewSummary: [], imageUrls: [], platform };
   }
 
-  // 상품명으로 네이버 쇼핑 검색해서 추가 정보 획득
   const items = await searchShopping(productName, 5);
   if (items.length > 0) {
     const item = items[0]!;
@@ -297,19 +312,10 @@ async function crawlCoupang(url: string): Promise<CrawledProduct> {
     };
   }
 
-  return {
-    productName,
-    price: "",
-    category: "",
-    features: [],
-    reviewSummary: [],
-    imageUrls: [],
-    platform,
-  };
+  return { productName, price: "", category: "", features: [], reviewSummary: [], imageUrls: [], platform };
 }
 
 export async function crawlProduct(url: string): Promise<CrawledProduct> {
-  // 캐시 체크
   const cached = CRAWL_CACHE.get(url);
   if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
 
@@ -318,18 +324,31 @@ export async function crawlProduct(url: string): Promise<CrawledProduct> {
 
   switch (platform) {
     case "naver": {
-      // Step 1: 모바일 페이지 OG 태그 (가장 안정적)
-      let partialData = await fetchMobilePage(url);
+      const parsed = parseNaverUrl(url);
+      const searchHint = extractSearchHint(url);
+      let partialData: Partial<CrawledProduct> = {};
 
-      // Step 2: 실패 시 내부 JSON API 폴백
-      if (!partialData.productName) {
-        const parsed = parseNaverUrl(url);
-        if (parsed) {
-          partialData = await fetchNaverProductApi(parsed.storeName, parsed.productNo);
-        }
+      // Step 1: URL의 nl-query 파라미터로 검색 API 조회 (가장 빠르고 안정적)
+      if (searchHint) {
+        partialData = await searchNaverProduct(searchHint, parsed?.productNo);
       }
 
-      // Step 3: 검색 API로 보강
+      // Step 2: 모바일 페이지 OG 태그 시도
+      if (!partialData.productName) {
+        partialData = await fetchMobilePage(url);
+      }
+
+      // Step 3: 스마트스토어 내부 API 시도
+      if (!partialData.productName && parsed) {
+        partialData = await fetchNaverProductApi(parsed.storeName, parsed.productNo);
+      }
+
+      // Step 4: 스토어명으로 검색 API 폴백
+      if (!partialData.productName && parsed) {
+        partialData = await searchNaverProduct(parsed.storeName, parsed.productNo);
+      }
+
+      // 최종: 검색 API로 보강
       result = await enrichWithSearchApi(partialData.productName ?? "", partialData);
       break;
     }
@@ -338,16 +357,7 @@ export async function crawlProduct(url: string): Promise<CrawledProduct> {
       break;
     }
     default: {
-      // 11번가 등
-      result = {
-        productName: "",
-        price: "",
-        category: "",
-        features: [],
-        reviewSummary: [],
-        imageUrls: [],
-        platform,
-      };
+      result = { productName: "", price: "", category: "", features: [], reviewSummary: [], imageUrls: [], platform };
       break;
     }
   }

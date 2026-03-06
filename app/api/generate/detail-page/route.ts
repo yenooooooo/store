@@ -34,9 +34,16 @@ const SYSTEM_PROMPT = `당신은 네이버 스마트스토어 상위 0.1% 판매
 {
   "title": "SEO 최적화 상품명 (50자 이내, 핵심키워드 앞배치)",
   "subtitle": "고객의 마음을 사로잡는 한 줄 카피",
+  "painPoints": ["타겟 고객의 고민1 (공감 유발)", "고민2", "고민3"],
+  "solution": "이 상품이 위 고민을 어떻게 해결하는지 2~3문장",
   "features": ["혜택 중심 특징1 (구체적 수치 포함)", "특징2", "특징3", "특징4", "특징5"],
+  "specs": [{"label": "스펙명1", "value": "스펙값1"}, {"label": "스펙명2", "value": "스펙값2"}, {"label": "스펙명3", "value": "스펙값3"}, {"label": "스펙명4", "value": "스펙값4"}],
   "scenario": "타겟 고객의 하루를 따라가는 생생한 사용 시나리오 3~4문장",
-  "cta": "긴급성 + 혜택 + 사회적 증거가 결합된 강력한 구매 유도 문구",
+  "testimonial": "실제 구매자가 쓸 법한 생생한 후기 2~3문장 (자연스럽고 진정성 있게)",
+  "faq": [{"q": "자주 묻는 질문1", "a": "명확한 답변1"}, {"q": "질문2", "a": "답변2"}, {"q": "질문3", "a": "답변3"}],
+  "trustBadges": ["무료배송", "100% 정품 보장", "30일 교환/환불"],
+  "cta": "강력한 구매 유도 한 줄 문구",
+  "urgency": "긴급성을 자극하는 한 줄 (예: 오늘 주문 시 내일 도착!)",
   "seoKeywords": ["검색량 높은 키워드1", "키워드2", "키워드3", "키워드4", "키워드5"],
   "conversionScore": 85,
   "improvements": ["구체적 개선 액션1 (+예상 점수)", "개선2", "개선3"]
@@ -101,7 +108,7 @@ ${input.targetAudience ? `\n타겟 고객: ${input.targetAudience}` : ""}
     const stream = streamGenerate({
       systemPrompt: withDate(SYSTEM_PROMPT),
       userPrompt,
-      maxTokens: 2000,
+      maxTokens: 3000,
     });
 
     await deductCredit(profile, supabase);

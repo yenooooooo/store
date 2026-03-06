@@ -45,9 +45,16 @@ export interface SellerboostInput {
 export interface SellerboostOutput {
   title: string;
   subtitle: string;
+  painPoints: string[];
+  solution: string;
   features: string[];
+  specs: { label: string; value: string }[];
   scenario: string;
+  testimonial: string;
+  faq: { q: string; a: string }[];
+  trustBadges: string[];
   cta: string;
+  urgency: string;
   seoKeywords: string[];
   conversionScore: number;
   improvements: string[];
