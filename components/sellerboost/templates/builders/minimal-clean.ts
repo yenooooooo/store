@@ -1,10 +1,12 @@
 import type { TemplateData } from "../template-types";
+import { ac, renderImages } from "./shared";
 
 export function build(d: TemplateData): string {
+  const color = ac(d.brandColor, "#111827");
   return `<div style="max-width:780px;margin:0 auto;font-family:'Noto Sans KR',sans-serif;color:#111;background:#fff;padding:0;">
 
   <!-- Hero: 극도로 심플한 센터 정렬 -->
-  <div style="padding:80px 40px 60px;text-align:center;">
+  <div style="padding:80px 40px 40px;text-align:center;">
     <h1 style="font-size:32px;font-weight:300;letter-spacing:-0.5px;margin:0 0 16px;color:#111;line-height:1.4;">${d.productName}</h1>
     <div style="width:40px;height:1px;background:#ddd;margin:0 auto 16px;"></div>
     <p style="font-size:15px;color:#888;margin:0;font-weight:300;line-height:1.8;">${d.subtitle}</p>
@@ -61,10 +63,14 @@ export function build(d: TemplateData): string {
     </div>`).join("")}
   </div>` : ""}
 
+  <!-- 이미지 -->
+  ${renderImages(d.productImages)}
+
   <!-- CTA: 언더스테이트 -->
   <div style="padding:48px 40px;text-align:center;border-top:1px solid #f0f0f0;">
     ${d.urgency ? `<p style="font-size:12px;color:#999;margin:0 0 12px;">${d.urgency}</p>` : ""}
     <p style="font-size:16px;color:#111;margin:0 0 20px;font-weight:400;">${d.cta}</p>
+    <div style="display:inline-block;background:${color};color:#fff;padding:12px 40px;border-radius:8px;font-size:14px;font-weight:600;">구매하기</div>
     ${d.trustBadges.length > 0 ? `<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:16px;">${d.trustBadges.map((b) => `<span style="font-size:11px;color:#aaa;">${b}</span>`).join("")}</div>` : ""}
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:24px;">${d.seoKeywords.map((kw) => `<span style="font-size:10px;color:#ccc;">#${kw}</span>`).join("")}</div>
   </div>

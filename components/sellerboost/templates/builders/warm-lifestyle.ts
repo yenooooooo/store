@@ -1,6 +1,8 @@
 import type { TemplateData } from "../template-types";
+import { ac, renderImages } from "./shared";
 
 export function build(d: TemplateData): string {
+  const color = ac(d.brandColor, "#fb923c");
   return `<div style="max-width:860px;margin:0 auto;font-family:'Noto Sans KR',sans-serif;color:#44403c;background:#fffbf5;padding:0;">
 
   <!-- Hero: 웜 피치 그라디언트 -->
@@ -82,11 +84,14 @@ export function build(d: TemplateData): string {
     </div>`).join("")}
   </div>` : ""}
 
+  <!-- 이미지 -->
+  ${d.productImages && d.productImages.length > 0 ? `<div style="padding:0 40px 24px;">${renderImages(d.productImages)}</div>` : ""}
+
   <!-- CTA: 코랄 -->
   <div style="padding:48px 40px;text-align:center;background:linear-gradient(180deg,#fffbf5 0%,#fff1e6 100%);">
     ${d.urgency ? `<p style="font-size:12px;color:#dc2626;font-weight:600;margin:0 0 12px;">&#128293; ${d.urgency}</p>` : ""}
     <p style="font-size:20px;font-weight:800;color:#1c1917;margin:0 0 20px;">${d.cta}</p>
-    <div style="display:inline-block;background:linear-gradient(135deg,#fb923c,#f97316);color:#fff;padding:16px 48px;border-radius:28px;font-size:15px;font-weight:700;">&#10084; 지금 구매하기</div>
+    <div style="display:inline-block;background:${color};color:#fff;padding:16px 48px;border-radius:28px;font-size:15px;font-weight:700;">&#10084; 지금 구매하기</div>
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:24px;">${d.seoKeywords.map((kw) => `<span style="font-size:10px;color:#d6d3d1;">#${kw}</span>`).join("")}</div>
   </div>
 </div>`;

@@ -1,6 +1,8 @@
 import type { TemplateData } from "../template-types";
+import { ac, renderImages } from "./shared";
 
 export function build(d: TemplateData): string {
+  const color = ac(d.brandColor, "${color}");
   return `<div style="max-width:860px;margin:0 auto;font-family:'Noto Sans KR',sans-serif;color:#1a1a1a;background:#fff;padding:0;">
 
   <!-- Hero: 매거진 풀폭 배너, 좌측 정렬 -->
@@ -25,7 +27,7 @@ export function build(d: TemplateData): string {
 
   ${d.solution ? `
   <!-- Solution: 풀 배너 인용 -->
-  <div style="padding:48px;background:#f8fafc;border-left:4px solid #3b82f6;">
+  <div style="padding:48px;background:#f8fafc;border-left:4px solid ${color};">
     <p style="font-size:20px;font-weight:300;color:#1e293b;line-height:1.7;margin:0;max-width:640px;">${d.solution}</p>
   </div>` : ""}
 
@@ -33,11 +35,11 @@ export function build(d: TemplateData): string {
   <!-- Features: 2컬럼 매거진 그리드 -->
   <div style="padding:48px;">
     <p style="font-size:24px;font-weight:900;color:#0f172a;margin:0 0 8px;">핵심 특징</p>
-    <div style="width:48px;height:3px;background:#3b82f6;margin-bottom:32px;"></div>
+    <div style="width:48px;height:3px;background:${color};margin-bottom:32px;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
       ${d.features.map((f, i) => `<div style="padding:24px;background:${i === 0 ? "#f0f9ff" : "#f8fafc"};border-radius:12px;${i === 0 ? "grid-column:1/-1;" : ""}">
         <div style="display:flex;gap:12px;align-items:flex-start;">
-          <span style="font-size:28px;font-weight:900;color:#3b82f6;line-height:1;">${String(i + 1).padStart(2, "0")}</span>
+          <span style="font-size:28px;font-weight:900;color:${color};line-height:1;">${String(i + 1).padStart(2, "0")}</span>
           <p style="font-size:14px;color:#334155;margin:0;line-height:1.7;padding-top:4px;">${f}</p>
         </div>
       </div>`).join("")}
@@ -67,7 +69,7 @@ export function build(d: TemplateData): string {
   <!-- Testimonial: 풀퀄리티 인용 -->
   <div style="padding:40px 48px;background:#f8fafc;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">
     <div style="display:flex;gap:20px;align-items:flex-start;max-width:600px;margin:0 auto;">
-      <div style="min-width:48px;height:48px;background:#3b82f6;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;">&#9733;</div>
+      <div style="min-width:48px;height:48px;background:${color};border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;">&#9733;</div>
       <div>
         <p style="font-size:14px;color:#334155;line-height:1.8;margin:0 0 8px;">${d.testimonial}</p>
         <div style="color:#f59e0b;font-size:14px;">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
@@ -78,18 +80,21 @@ export function build(d: TemplateData): string {
   ${d.faq.length > 0 ? `
   <div style="padding:48px;">
     <p style="font-size:24px;font-weight:900;color:#0f172a;margin:0 0 8px;">FAQ</p>
-    <div style="width:48px;height:3px;background:#3b82f6;margin-bottom:32px;"></div>
+    <div style="width:48px;height:3px;background:${color};margin-bottom:32px;"></div>
     ${d.faq.map((item) => `<div style="margin-bottom:16px;border-bottom:1px solid #e2e8f0;padding-bottom:16px;">
       <p style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 8px;">${item.q}</p>
       <p style="font-size:14px;color:#64748b;margin:0;line-height:1.7;">${item.a}</p>
     </div>`).join("")}
   </div>` : ""}
 
+  <!-- 이미지 -->
+  ${d.productImages && d.productImages.length > 0 ? `<div style="padding:0 48px 24px;">${renderImages(d.productImages)}</div>` : ""}
+
   <!-- CTA: 매거진 풀폭 배너 -->
   <div style="padding:56px 48px;background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);text-align:center;">
     ${d.urgency ? `<p style="font-size:13px;color:#f59e0b;font-weight:600;margin:0 0 16px;">${d.urgency}</p>` : ""}
     <p style="font-size:24px;font-weight:900;color:#fff;margin:0 0 24px;line-height:1.4;">${d.cta}</p>
-    <div style="display:inline-block;background:#3b82f6;color:#fff;padding:16px 56px;border-radius:8px;font-size:16px;font-weight:700;">구매하기</div>
+    <div style="display:inline-block;background:${color};color:#fff;padding:16px 56px;border-radius:8px;font-size:16px;font-weight:700;">구매하기</div>
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:24px;">${d.seoKeywords.map((kw) => `<span style="font-size:10px;color:rgba(255,255,255,0.4);">#${kw}</span>`).join("")}</div>
   </div>
 </div>`;

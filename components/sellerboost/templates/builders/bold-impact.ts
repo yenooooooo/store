@@ -1,6 +1,8 @@
 import type { TemplateData } from "../template-types";
+import { ac, renderImages } from "./shared";
 
 export function build(d: TemplateData): string {
+  const color = ac(d.brandColor, "#dc2626");
   return `<div style="max-width:860px;margin:0 auto;font-family:'Noto Sans KR',sans-serif;color:#1c1917;background:#fff;padding:0;">
 
   <!-- Hero: 블랙 + 레드 강렬한 히어로 -->
@@ -73,11 +75,14 @@ export function build(d: TemplateData): string {
     </div>`).join("")}
   </div>` : ""}
 
+  <!-- 이미지 -->
+  ${d.productImages && d.productImages.length > 0 ? `<div style="padding:0 40px 24px;">${renderImages(d.productImages)}</div>` : ""}
+
   <!-- CTA: 강렬한 레드 -->
   <div style="padding:56px 40px;background:#111;text-align:center;">
-    ${d.urgency ? `<div style="display:inline-block;background:#dc2626;color:#fff;font-size:14px;font-weight:800;padding:10px 32px;border-radius:4px;margin-bottom:20px;">&#9888; ${d.urgency}</div>` : ""}
+    ${d.urgency ? `<div style="display:inline-block;background:${color};color:#fff;font-size:14px;font-weight:800;padding:10px 32px;border-radius:4px;margin-bottom:20px;">&#9888; ${d.urgency}</div>` : ""}
     <p style="font-size:28px;font-weight:900;color:#fff;margin:0 0 24px;line-height:1.3;">${d.cta}</p>
-    <div style="display:inline-block;background:#dc2626;color:#fff;padding:18px 64px;border-radius:8px;font-size:18px;font-weight:900;">&#128293; 지금 바로 구매</div>
+    <div style="display:inline-block;background:${color};color:#fff;padding:18px 64px;border-radius:8px;font-size:18px;font-weight:900;">&#128293; 지금 바로 구매</div>
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:28px;">${d.seoKeywords.map((kw) => `<span style="font-size:10px;color:#525252;">#${kw}</span>`).join("")}</div>
   </div>
 </div>`;

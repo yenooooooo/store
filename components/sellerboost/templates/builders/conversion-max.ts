@@ -1,10 +1,12 @@
 import type { TemplateData } from "../template-types";
+import { ac, renderImages } from "./shared";
 
 export function build(d: TemplateData): string {
+  const color = ac(d.brandColor, "#7c3aed");
   return `<div style="max-width:860px;margin:0 auto;font-family:'Noto Sans KR',sans-serif;color:#1f2937;background:#fff;padding:0;">
 
   <!-- Hero: 즉시 CTA 포함 스플릿 히어로 -->
-  <div style="background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);padding:56px 40px;text-align:center;">
+  <div style="background:${color};padding:56px 40px;text-align:center;">
     ${d.urgency ? `<div style="display:inline-block;background:#fbbf24;color:#111;font-size:13px;font-weight:800;padding:8px 24px;border-radius:4px;margin-bottom:20px;">&#9200; ${d.urgency}</div>` : ""}
     <h1 style="font-size:30px;font-weight:900;margin:0 0 14px;color:#fff;line-height:1.3;">${d.productName}</h1>
     <p style="font-size:16px;color:rgba(255,255,255,0.85);margin:0 0 24px;">${d.subtitle}</p>
@@ -91,8 +93,11 @@ export function build(d: TemplateData): string {
     </div>`).join("")}
   </div>` : ""}
 
+  <!-- 이미지 -->
+  ${d.productImages && d.productImages.length > 0 ? `<div style="padding:0 40px 24px;">${renderImages(d.productImages)}</div>` : ""}
+
   <!-- Final CTA: 최종 전환 -->
-  <div style="padding:56px 40px;text-align:center;background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);">
+  <div style="padding:56px 40px;text-align:center;background:${color};">
     ${d.urgency ? `<div style="display:inline-block;background:#fbbf24;color:#111;font-size:14px;font-weight:800;padding:10px 32px;border-radius:4px;margin-bottom:20px;">&#9200; ${d.urgency}</div>` : ""}
     <p style="font-size:26px;font-weight:900;color:#fff;margin:0 0 8px;">${d.cta}</p>
     <p style="font-size:14px;color:rgba(255,255,255,0.7);margin:0 0 24px;">12,847명이 이미 선택한 검증된 제품</p>

@@ -7,8 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Plus, X, RotateCcw } from "lucide-react";
+import { Pencil, Plus, X, RotateCcw, ImageIcon } from "lucide-react";
 import type { TemplateData } from "./template-types";
+
+const PRESET_COLORS = [
+  "#3b82f6", "#8b5cf6", "#ec4899", "#ef4444",
+  "#f97316", "#22c55e", "#c4a35a", "#111827",
+];
 
 interface Props {
   data: TemplateData;
@@ -57,7 +62,21 @@ export default function TemplateEditor({ data, onChange, originalData }: Props) 
     if (map[section]) update(map[section]);
   }
 
+  function handleImageAdd(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    files.forEach((file) => {
+      if ((data.productImages || []).length >= 5) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const base64 = ev.target?.result as string;
+        update({ productImages: [...(data.productImages || []), base64].slice(0, 5) });
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   const sections = [
+    { id: "design", label: "브랜드 컬러 & 이미지" },
     { id: "title", label: "제목 / 부제목" },
     { id: "painPoints", label: "고민 포인트" },
     { id: "solution", label: "해결책" },
@@ -95,6 +114,57 @@ export default function TemplateEditor({ data, onChange, originalData }: Props) 
 
             {editingSection === section.id && (
               <div className="px-3 pb-3 pt-2 space-y-3">
+
+                {section.id === "design" && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">브랜드 컬러</Label>
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {PRESET_COLORS.map((c) => (
+                          <button
+                            key={c}
+                            onClick={() => update({ brandColor: c })}
+                            style={{ background: c }}
+                            className={`w-7 h-7 rounded-full border-2 transition-all ${data.brandColor === c ? "border-gray-900 scale-110" : "border-transparent hover:scale-105"}`}
+                          />
+                        ))}
+                        <input
+                          type="color"
+                          value={data.brandColor || "#3b82f6"}
+                          onChange={(e) => update({ brandColor: e.target.value })}
+                          className="w-7 h-7 rounded-full cursor-pointer border border-gray-200 bg-transparent p-0"
+                          title="직접 색상 선택"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">상품 이미지 (최대 5장)</Label>
+                      {(data.productImages || []).length > 0 && (
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {(data.productImages || []).map((img, i) => (
+                            <div key={i} className="relative group">
+                              <img src={img} alt="" className="w-full h-16 object-cover rounded-lg border border-gray-100" />
+                              <button
+                                onClick={() => update({ productImages: (data.productImages || []).filter((_, idx) => idx !== i) })}
+                                className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="h-2.5 w-2.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {(data.productImages || []).length < 5 && (
+                        <label className="flex items-center justify-center gap-2 h-10 border border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors">
+                          <ImageIcon className="h-3.5 w-3.5 text-gray-400" />
+                          <span className="text-xs text-gray-400">이미지 추가</span>
+                          <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageAdd} />
+                        </label>
+                      )}
+                    </div>
+                  </>
+                )}
+
                 {section.id === "title" && (
                   <>
                     <div className="space-y-1.5">
