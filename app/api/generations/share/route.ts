@@ -1,5 +1,4 @@
 import { withAuth } from "@/lib/api-helpers";
-import { createClient as createServiceClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   return withAuth(async ({ userId, supabase }) => {

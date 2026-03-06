@@ -40,6 +40,7 @@ ${r.cta}
 SEO 키워드: ${r.seoKeywords.join(", ")}`;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildHtml(r: SellerboostOutput): string {
   return `<div style="max-width:860px;margin:0 auto;font-family:'Noto Sans KR',sans-serif;color:#222;">
   <h1 style="font-size:22px;font-weight:700;margin-bottom:8px;">${r.title}</h1>

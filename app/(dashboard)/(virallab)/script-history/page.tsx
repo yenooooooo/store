@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Film, Loader2, History } from "lucide-react";
+import { Film, Loader2 } from "lucide-react";
 import Link from "next/link";
 import FeatureGate from "@/components/shared/feature-gate";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText, Loader2, History, X, ArrowLeft } from "lucide-react";
+import { FileText, Loader2, History, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import FeatureGate from "@/components/shared/feature-gate";
 import GenerationResult from "@/components/sellerboost/generation-result";

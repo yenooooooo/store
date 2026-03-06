@@ -13,7 +13,6 @@ import {
   X,
   Sparkles,
 } from "lucide-react";
-import Link from "next/link";
 import { toast } from "sonner";
 
 const PLANS = [

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Search, Loader2, TrendingUp, AlertCircle, BarChart3 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import UpgradeModal from "@/components/shared/upgrade-modal";

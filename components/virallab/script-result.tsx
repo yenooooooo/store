@@ -13,7 +13,6 @@ import {
   Check,
   Download,
   Sparkles,
-  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import ShareButton from "@/components/shared/share-button";

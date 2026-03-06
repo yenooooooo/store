@@ -13,7 +13,7 @@ export default function ShareResultView({ productType, inputData, outputData }: 
   return <VirallabResult input={inputData} output={outputData} />;
 }
 
-function SellerboostResult({ input, output }: { input: Record<string, unknown>; output: Record<string, unknown> }) {
+function SellerboostResult({ output }: { input: Record<string, unknown>; output: Record<string, unknown> }) {
   const title = output.title as string | undefined;
   const subtitle = output.subtitle as string | undefined;
   const features = output.features as string[] | undefined;
@@ -131,7 +131,7 @@ function SellerboostResult({ input, output }: { input: Record<string, unknown>; 
   );
 }
 
-function VirallabResult({ input, output }: { input: Record<string, unknown>; output: Record<string, unknown> }) {
+function VirallabResult({ output }: { input: Record<string, unknown>; output: Record<string, unknown> }) {
   const title = output.title as string | undefined;
   const hook = output.hook as string | undefined;
   const script = output.script as string | undefined;

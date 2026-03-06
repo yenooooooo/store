@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Share2, Check, Loader2, Link as LinkIcon } from "lucide-react";
+import { Share2, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {

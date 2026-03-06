@@ -186,7 +186,7 @@ async function enrichWithSearchApi(
   console.log("[CRAWL] Enriching with search API:", productName);
   const items = await searchShopping(productName, 5);
 
-  let enrichedFeatures = partial.features ?? [];
+  const enrichedFeatures = partial.features ?? [];
   let enrichedCategory = partial.category ?? "";
   let enrichedPrice = partial.price ?? "";
   const enrichedImages = partial.imageUrls ?? [];
