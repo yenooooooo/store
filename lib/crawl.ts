@@ -109,9 +109,9 @@ async function fetchMobilePage(url: string): Promise<Partial<CrawledProduct>> {
   const mobileUrl = toMobileNaverUrl(url);
   console.log("[CRAWL] Fetching mobile page:", mobileUrl);
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) {
-      await new Promise((r) => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 1000 * attempt));
     }
 
     try {
@@ -318,17 +318,15 @@ export async function crawlProduct(url: string): Promise<CrawledProduct> {
 
   switch (platform) {
     case "naver": {
-      let partialData: Partial<CrawledProduct> = {};
+      // Step 1: 모바일 페이지 OG 태그 (가장 안정적)
+      let partialData = await fetchMobilePage(url);
 
-      // Step 1: 내부 JSON API 시도 (가장 안정적)
-      const parsed = parseNaverUrl(url);
-      if (parsed) {
-        partialData = await fetchNaverProductApi(parsed.storeName, parsed.productNo);
-      }
-
-      // Step 2: 실패 시 모바일 페이지 OG 태그 폴백
+      // Step 2: 실패 시 내부 JSON API 폴백
       if (!partialData.productName) {
-        partialData = await fetchMobilePage(url);
+        const parsed = parseNaverUrl(url);
+        if (parsed) {
+          partialData = await fetchNaverProductApi(parsed.storeName, parsed.productNo);
+        }
       }
 
       // Step 3: 검색 API로 보강
